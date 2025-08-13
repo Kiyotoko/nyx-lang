@@ -13,7 +13,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
   }
 
-  private final Environment environment = new Environment();
+  private Environment environment = new Environment(null);
 
   public void interpret(List<Stmt> statements) {
     try {
@@ -54,6 +54,42 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   }
 
   @Override
+  public Void visitExpressionStmt(Stmt.Expression stmt) {
+    evaluate(stmt.expr());
+    return null;
+  }
+
+  @Override
+  public Void visitBlockStmt(Stmt.Block stmt) {
+    Environment previous = this.environment;
+    try {
+      this.environment = new Environment(environment);
+
+      for (Stmt statement : stmt.statements()) {
+        execute(statement);
+      }
+    } finally {
+      this.environment = previous;
+    }
+    return null;
+  }
+
+  @Override
+  public Void visitClassStmt(Stmt.Class stmt) {
+    throw new UnsupportedOperationException("Not supported yet.");
+  }
+
+  @Override
+  public Void visitFunctionStmt(Stmt.Function stmt) {
+    throw new UnsupportedOperationException("Not supported yet.");
+  }
+
+  @Override
+  public Void visitIfStmt(Stmt.If stmt) {
+    throw new UnsupportedOperationException("Not supported yet.");
+  }
+
+  @Override
   public Void visitWhileStmt(Stmt.While stmt) {
     throw new UnsupportedOperationException("Not supported yet.");
   }
@@ -81,26 +117,6 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   @Override
   public Object visitVariableExpr(Expr.Variable expr) {
     return environment.get(expr.name());
-  }
-
-  @Override
-  public Void visitBlockStmt(Stmt.Block stmt) {
-    throw new UnsupportedOperationException("Not supported yet.");
-  }
-
-  @Override
-  public Void visitClassStmt(Stmt.Class stmt) {
-    throw new UnsupportedOperationException("Not supported yet.");
-  }
-
-  @Override
-  public Void visitFunctionStmt(Stmt.Function stmt) {
-    throw new UnsupportedOperationException("Not supported yet.");
-  }
-
-  @Override
-  public Void visitIfStmt(Stmt.If stmt) {
-    throw new UnsupportedOperationException("Not supported yet.");
   }
 
   @Override
@@ -193,7 +209,9 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
   @Override
   public Object visitAssignExpr(Expr.Assign expr) {
-    throw new UnsupportedOperationException("Not supported yet.");
+    Object value = evaluate(expr.value());
+    environment.define(expr.name(), value);
+    return value;
   }
 
   @Override
@@ -224,8 +242,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   }
 
   private boolean isEqual(Object a, Object b) {
-    if (a == null && b == null) return true;
-    if (a == null) return false;
+    if (a == null) return b == null;
 
     return a.equals(b);
   }

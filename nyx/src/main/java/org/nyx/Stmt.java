@@ -8,6 +8,8 @@ public interface Stmt {
 
     R visitClassStmt(Class stmt);
 
+    R visitExpressionStmt(Expression stmt);
+
     R visitFunctionStmt(Function stmt);
 
     R visitIfStmt(If stmt);
@@ -28,6 +30,13 @@ public interface Stmt {
     @Override
     public <R> R accept(Visitor<R> visitor) {
       return visitor.visitClassStmt(this);
+    }
+  }
+
+  record Expression(Expr expr) implements Stmt {
+    @Override
+    public <R> R accept(Visitor<R> visitor) {
+      return visitor.visitExpressionStmt(this);
     }
   }
 

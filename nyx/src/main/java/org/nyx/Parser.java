@@ -22,6 +22,7 @@ public class Parser {
     return statements;
   }
 
+  // Try to parse a declaration, else parses a statement.
   private Stmt declaration() {
     try {
       if (match(TokenType.LET)) return varDeclaration();
@@ -45,13 +46,49 @@ public class Parser {
     return new Stmt.Let(name, initializer);
   }
 
+  // Try to parses a statement, else parses a expression.
   private Stmt statement() {
-    consume(TokenType.SEMICOLON, "Expected Statement.");
-    return null;
+    if (match(TokenType.LEFT_BRACE)) return blockStatement();
+
+    return expressionStatement();
+  }
+
+  private Stmt.Block blockStatement() {
+    List<Stmt> statements = new ArrayList<>();
+
+    while (!check(TokenType.RIGHT_BRACE) && !isAtEnd()) {
+      statements.add(declaration());
+    }
+
+    consume(TokenType.RIGHT_BRACE, "Expect '}' after block.");
+    return new Stmt.Block(statements);
+  }
+
+
+  private Stmt.Expression expressionStatement() {
+    Expr expr = expression();
+    consume(TokenType.SEMICOLON, "Expect ';' after expression.");
+    return new Stmt.Expression(expr);
   }
 
   private Expr expression() {
-    return equality();
+    return assignment();
+  }
+
+  private Expr assignment() {
+    Expr expr = equality();
+
+    if (match(TokenType.SET)) {
+      Token equals = previous();
+      Expr value = assignment();
+
+      if (expr instanceof Expr.Variable variable)
+        return new Expr.Assign(variable.name(), value);
+
+      throw error(equals, "Invalid assignment target."); 
+    }
+
+    return expr;
   }
 
   private Expr equality() {
@@ -141,17 +178,10 @@ public class Parser {
       if (previous().type == TokenType.SEMICOLON) return;
 
       switch (peek().type) {
-        case CLASS:
-        case FUN:
-        case LET:
-        case FOR:
-        case IF:
-        case WHILE:
-        case RETURN:
+        case CLASS, FUN, LET, FOR, IF, WHILE, RETURN -> {
           return;
-        default:
-          advance();
-          break;
+        }
+        default -> advance();
       }
     }
   }
