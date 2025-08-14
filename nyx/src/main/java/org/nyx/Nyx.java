@@ -40,7 +40,6 @@ public class Nyx {
       if (line == null) break;
       hadError = false;
       run(line, interpreter);
-      System.out.println(interpreter.getEnvironment());
     }
   }
 
@@ -61,10 +60,10 @@ public class Nyx {
   }
 
   static void error(Token token, String message) {
-    if (token.type == TokenType.EOF) {
-      report(token.line, " at end", message);
+    if (token.type() == TokenType.EOF) {
+      report(token.line(), " at end", message);
     } else {
-      report(token.line, " at '" + token.lexeme + "'", message);
+      report(token.line(), " at '" + token.lexeme() + "'", message);
     }
   }
 

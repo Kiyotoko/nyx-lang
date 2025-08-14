@@ -1,6 +1,8 @@
 package org.nyx;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
@@ -13,7 +15,49 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
   }
 
+  // Global environment
   private Environment environment = new Environment(null);
+  private Object returnValue = null;
+
+  public Interpreter() {
+    for (var pair : Map.of(
+      "time", new NyxCallable() {
+        @Override
+        public Object call(Interpreter interpreter, List<Object> args) {
+          return (double) System.currentTimeMillis();
+        }
+
+        @Override
+        public int aritiy() {
+          return 0;
+        }
+
+        @Override
+        public String toString() {
+          return "<native fn>";
+        }
+      },
+      "print", new NyxCallable() {
+        @Override
+        public Object call(Interpreter interpreter, List<Object> args) {
+          System.out.println(args.get(0));
+          return args.get(0);
+        }
+
+        @Override
+        public int aritiy() {
+          return 1;
+        }
+
+        @Override
+        public String toString() {
+          return "<native fn>";
+        }
+      }
+    ).entrySet()) {
+      environment.declare(pair.getKey(), pair.getValue());
+    }
+  }
 
   public void interpret(List<Stmt> statements) {
     try {
@@ -21,7 +65,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         execute(statement);
       }
     } catch (RuntimeError e) {
-      Nyx.error(e.token.line, e.getMessage());
+      Nyx.error(e.token.line(), e.getMessage());
     }
   }
 
@@ -36,6 +80,20 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
   public void execute(Stmt stmt) {
     stmt.accept(this);
+  }
+
+  public void execute(Stmt.Block stmts, Environment env) {
+    Environment previous = this.environment;
+    try {
+      this.environment = env;
+
+      for (Stmt statement : stmts.statements()) {
+        execute(statement);
+        if (returnValue != null) return;
+      }
+    } finally {
+      this.environment = previous;
+    }
   }
 
   public Object evaluate(Expr expr) {
@@ -61,16 +119,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitBlockStmt(Stmt.Block stmt) {
-    Environment previous = this.environment;
-    try {
-      this.environment = new Environment(environment);
-
-      for (Stmt statement : stmt.statements()) {
-        execute(statement);
-      }
-    } finally {
-      this.environment = previous;
-    }
+    execute(stmt, new Environment(environment));
     return null;
   }
 
@@ -81,22 +130,47 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitFunctionStmt(Stmt.Function stmt) {
-    throw new UnsupportedOperationException("Not supported yet.");
+    NyxFunction function = new NyxFunction(stmt, environment);
+    environment.declare(stmt.name(), function);
+    return null;
   }
 
   @Override
   public Void visitIfStmt(Stmt.If stmt) {
-    throw new UnsupportedOperationException("Not supported yet.");
+    if (evaluate(stmt.condition()) instanceof Boolean c && c) {
+      execute(stmt.ifBranch());
+    } else if (stmt.elseBranch() != null) {
+      execute(stmt.elseBranch());
+    }
+    return null;
+  }
+
+  @Override
+  public Void visitReturnStmt(Stmt.Return stmt) {
+    returnValue = evaluate(stmt.value());
+    return null;
   }
 
   @Override
   public Void visitWhileStmt(Stmt.While stmt) {
-    throw new UnsupportedOperationException("Not supported yet.");
+    while (evaluate(stmt.condition()) instanceof Boolean c && c) {
+      execute(stmt.body());
+    }
+    return null;
   }
 
   @Override
   public Object visitLogicalExpr(Expr.Logical expr) {
-    throw new UnsupportedOperationException("Not supported yet.");
+    Object left = evaluate(expr.left());
+    checkBoolOperand(expr.operator(), left);
+
+    if (expr.operator().type() == TokenType.OR) {
+      if ((boolean) left) return left;
+    } else {
+      if (!(boolean) left) return left;
+    }
+
+    return evaluate(expr.right());
   }
 
   @Override
@@ -128,7 +202,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   public Object visitUnaryExpr(Expr.Unary expr) {
     Object right = evaluate(expr.right());
 
-    return switch (expr.operator().type) {
+    return switch (expr.operator().type()) {
       case SUB -> {
         checkNumberOperand(expr.operator(), right);
         yield -(double) right;
@@ -146,7 +220,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   public Object visitBinaryExpr(Expr.Binary expr) {
     Object left = evaluate(expr.left());
 
-    return switch (expr.operator().type) {
+    return switch (expr.operator().type()) {
       case GREATER -> {
         checkNumberOperand(expr.operator(), left);
         Object right = evaluate(expr.right());
@@ -216,7 +290,23 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
   @Override
   public Object visitCallExpr(Expr.Call expr) {
-    throw new UnsupportedOperationException("Not supported yet.");
+    Object callee = evaluate(expr.callee());
+    if (callee instanceof NyxCallable fun) {
+      if (fun.aritiy() != expr.arguments().size()) {
+        throw new RuntimeError(expr.paren(),
+          "Expected " + fun.aritiy() + " arguments, but got " + expr.arguments().size() + ".");
+      }
+
+      List<Object> arguments = new ArrayList<>();
+      for (Expr argument : expr.arguments()) { 
+        arguments.add(evaluate(argument));
+      }
+
+      return fun.call(this, arguments);
+    }
+
+    throw new RuntimeError(expr.paren(),
+      "Can only call functions and classes.");    
   }
 
   @Override
@@ -245,6 +335,12 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     if (a == null) return b == null;
 
     return a.equals(b);
+  }
+
+  public Object getReturnValue() {
+    var temp = returnValue;
+    returnValue = null;
+    return temp;
   }
 
   public Environment getEnvironment() {

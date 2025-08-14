@@ -50,6 +50,14 @@ public class Scanner {
           addToken(TokenType.DIV);
         }
       }
+      case '&' -> {
+        if (match('&')) addToken(TokenType.AND);
+        else Nyx.error(line, "Unexpected character.");
+      }
+      case '|' -> {
+        if (match('|')) addToken(TokenType.OR);
+        else Nyx.error(line, "Unexpected character.");
+      }
       // Ignore whitespace.
       case ' ', '\r', '\t' -> {}
       case '\n' -> line++;
@@ -72,7 +80,6 @@ public class Scanner {
     String text = source.substring(start, current);
     TokenType type =
         switch (text) {
-          case "and" -> TokenType.AND;
           case "class" -> TokenType.CLASS;
           case "else" -> TokenType.ELSE;
           case "false" -> TokenType.FALSE;
@@ -80,7 +87,6 @@ public class Scanner {
           case "fun" -> TokenType.FUN;
           case "if" -> TokenType.IF;
           case "nil" -> TokenType.NIL;
-          case "or" -> TokenType.OR;
           case "return" -> TokenType.RETURN;
           case "super" -> TokenType.SUPER;
           case "this" -> TokenType.THIS;

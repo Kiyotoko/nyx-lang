@@ -16,6 +16,8 @@ public interface Stmt {
 
     R visitLetStmt(Let stmt);
 
+    R visitReturnStmt(Return stmt);
+
     R visitWhileStmt(While stmt);
   }
 
@@ -47,7 +49,7 @@ public interface Stmt {
     }
   }
 
-  record If(Expr condition, Block ifBranch, Block elseBranch) implements Stmt {
+  record If(Expr condition, Stmt ifBranch, Stmt elseBranch) implements Stmt {
     @Override
     public <R> R accept(Visitor<R> visitor) {
       return visitor.visitIfStmt(this);
@@ -61,7 +63,14 @@ public interface Stmt {
     }
   }
 
-  record While(Expr condition, Block body) implements Stmt {
+  record Return(Token keyword, Expr value) implements Stmt {
+    @Override
+    public <R> R accept(Visitor<R> visitor) {
+      return visitor.visitReturnStmt(this);
+    }
+  }
+
+  record While(Expr condition, Stmt body) implements Stmt {
     @Override
     public <R> R accept(Visitor<R> visitor) {
       return visitor.visitWhileStmt(this);
