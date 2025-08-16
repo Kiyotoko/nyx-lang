@@ -72,7 +72,8 @@ public class Resolution implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitGetExpr(Expr.Get expr) {
-    throw new UnsupportedOperationException("Not supported yet.");
+    resolve(expr.object());
+    return null;
   }
 
   @Override
@@ -103,18 +104,20 @@ public class Resolution implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
   @Override
   public Void visitSetExpr(Expr.Set expr) {
     resolve(expr.value());
-    resolveLocal(expr, expr.name());
+    resolve(expr.object());
     return null;
   }
 
   @Override
   public Void visitSuperExpr(Expr.Super expr) {
-    throw new UnsupportedOperationException("Not supported yet.");
+    resolveLocal(expr, expr.keyword());
+    return null;
   }
 
   @Override
   public Void visitThisExpr(Expr.This expr) {
-    throw new UnsupportedOperationException("Not supported yet.");
+    resolveLocal(expr, expr.keyword());
+    return null;
   }
 
   @Override
@@ -146,7 +149,28 @@ public class Resolution implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitClassStmt(Stmt.Class stmt) {
-    throw new UnsupportedOperationException("Not supported yet.");
+    declare(stmt.name());
+    define(stmt.name());
+
+    if (stmt.superclass() != null) {
+      if (stmt.superclass().name() == stmt.name()) {
+        Nyx.error(stmt.superclass().name(), "A class can't inherit from itself.");
+      }
+      resolve(stmt.superclass());
+
+      beginScope();
+      scopes.peek().put("super", true);
+    }
+
+    beginScope();
+    scopes.peek().put("this", true);
+    for (var method : stmt.methods()) {
+      resolveFunction(method);
+    }
+    endScope();
+    if (stmt.superclass() != null) endScope();
+
+    return null;
   }
 
   @Override

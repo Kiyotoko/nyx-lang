@@ -30,6 +30,9 @@ public interface Expr {
   }
 
   record Literal(Object value) implements Expr {
+    public static final Literal FALSE = new Literal(false);
+    public static final Literal TRUE = new Literal(true);
+    public static final Literal NIL = new Literal(null);
 
     @Override
     public <R> R accept(Visitor<R> visitor) {
@@ -38,7 +41,6 @@ public interface Expr {
   }
 
   record Unary(Token operator, Expr right) implements Expr {
-
     @Override
     public <R> R accept(Visitor<R> visitor) {
       return visitor.visitUnaryExpr(this);
@@ -46,15 +48,13 @@ public interface Expr {
   }
 
   record Binary(Expr left, Token operator, Expr right) implements Expr {
-
     @Override
     public <R> R accept(Visitor<R> visitor) {
       return visitor.visitBinaryExpr(this);
     }
   }
 
-  record Assign(Token name, Expr value) implements Expr {
-
+  record Assign(Token name, Token operator, Expr value) implements Expr {
     @Override
     public <R> R accept(Visitor<R> visitor) {
       return visitor.visitAssignExpr(this);
@@ -68,7 +68,7 @@ public interface Expr {
     }
   }
 
-  record Set(Expr object, Token name, Expr value) implements Expr {
+  record Set(Expr object, Token name, Token operator, Expr value) implements Expr {
     @Override
     public <R> R accept(Visitor<R> visitor) {
       return visitor.visitSetExpr(this);

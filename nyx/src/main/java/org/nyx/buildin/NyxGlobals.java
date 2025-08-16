@@ -32,8 +32,10 @@ public final class NyxGlobals {
               new NyxCallable() {
                 @Override
                 public Object call(Interpreter interpreter, List<Object> args) {
-                  System.out.println(args.get(0));
-                  return args.get(0);
+                  Object arg = args.get(0);
+                  String str = (arg != null ? arg.toString() : "nil");
+                  System.out.println(str);
+                  return str;
                 }
 
                 @Override

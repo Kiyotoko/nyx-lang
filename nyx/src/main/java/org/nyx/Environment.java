@@ -2,6 +2,7 @@ package org.nyx;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.BiFunction;
 
 public class Environment {
   private final Environment enclosing;
@@ -30,6 +31,16 @@ public class Environment {
     ancestor(distance).values.put(name.lexeme(), value);
   }
 
+  public void compute(Token name, BiFunction<String, Object, Object> function) {
+    if (values.containsKey(name.lexeme())) values.compute(name.lexeme(), function);
+    else if (enclosing != null) enclosing.compute(name, function);
+    else Nyx.error(name, "Variable '" + name.lexeme() + "' is not declared.");
+  }
+
+  public void computeAt(int distance, Token name, BiFunction<String, Object, Object> function) {
+    ancestor(distance).compute(name, function);
+  }
+
   public Object get(Token name) {
     if (values.containsKey(name.lexeme())) return values.get(name.lexeme());
     else if (enclosing != null) return enclosing.get(name);
@@ -54,5 +65,9 @@ public class Environment {
   @Override
   public String toString() {
     return values.entrySet().toString() + " /-> " + enclosing;
+  }
+
+  public Environment getEnclosing() {
+    return enclosing;
   }
 }

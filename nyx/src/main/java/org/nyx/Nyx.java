@@ -76,7 +76,8 @@ public class Nyx {
   }
 
   private static void report(int line, int column, String message) {
-    System.err.println(Ansi.RED + Ansi.BOLD + "error: " + Ansi.RESET + Ansi.BOLD + message + Ansi.RESET);
+    System.err.println(
+        Ansi.RED + Ansi.BOLD + "error: " + Ansi.RESET + Ansi.BOLD + message + Ansi.RESET);
     System.err.println(Ansi.BLUE + " --> " + Ansi.RESET + source + ":" + line + ":" + column);
     hadError = true;
   }

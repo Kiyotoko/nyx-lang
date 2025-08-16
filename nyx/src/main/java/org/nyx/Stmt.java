@@ -28,7 +28,7 @@ public interface Stmt {
     }
   }
 
-  record Class(Token name, Expr.Variable classname, List<Stmt.Function> methods) implements Stmt {
+  record Class(Token name, Expr.Variable superclass, List<Stmt.Function> methods) implements Stmt {
     @Override
     public <R> R accept(Visitor<R> visitor) {
       return visitor.visitClassStmt(this);

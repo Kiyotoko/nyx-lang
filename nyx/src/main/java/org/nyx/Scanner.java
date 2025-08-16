@@ -35,9 +35,9 @@ public class Scanner {
       case '}' -> addToken(TokenType.RIGHT_BRACE);
       case ',' -> addToken(TokenType.COMMA);
       case '.' -> addToken(TokenType.GET);
-      case '+' -> addToken(TokenType.ADD);
-      case '-' -> addToken(TokenType.SUB);
-      case '*' -> addToken(TokenType.MUL);
+      case '+' -> addToken(match('=') ? TokenType.SET_ADD : TokenType.ADD);
+      case '-' -> addToken(match('=') ? TokenType.SET_SUB : TokenType.SUB);
+      case '*' -> addToken(match('=') ? TokenType.SET_DIV : TokenType.MUL);
       case ';' -> addToken(TokenType.SEMICOLON);
       case '!' -> addToken(match('=') ? TokenType.NOT_EQUAL : TokenType.NOT);
       case '=' -> addToken(match('=') ? TokenType.EQUAL : TokenType.SET);
@@ -47,9 +47,8 @@ public class Scanner {
         if (match('/')) {
           // A comment goes until the end of the line.
           while (peek() != '\n' && !isAtEnd()) advance();
-        } else {
-          addToken(TokenType.DIV);
-        }
+        } else if (match('=')) addToken(TokenType.SET_DIV);
+        else addToken(TokenType.DIV);
       }
       case '&' -> {
         if (match('&')) addToken(TokenType.AND);

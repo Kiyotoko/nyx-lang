@@ -28,6 +28,7 @@ public class Parser {
     try {
       if (match(TokenType.LET)) return varDeclaration();
       if (match(TokenType.FUN)) return funDeclaration();
+      if (match(TokenType.CLASS)) return classDeclaration();
 
       return statement();
     } catch (ParseError error) {
@@ -48,7 +49,7 @@ public class Parser {
     return new Stmt.Let(name, initializer);
   }
 
-  private Stmt funDeclaration() {
+  private Stmt.Function funDeclaration() {
     Token name = consume(TokenType.IDENTIFIER, "Expect function name.");
     consume(TokenType.LEFT_PAREN, "Expect '(' after function name.");
     List<Token> parameters = new ArrayList<>();
@@ -65,6 +66,27 @@ public class Parser {
 
     consume(TokenType.LEFT_BRACE, "Expect '{' before function body.");
     return new Stmt.Function(name, parameters, blockStatement());
+  }
+
+  private Stmt classDeclaration() {
+    Token name = consume(TokenType.IDENTIFIER, "Expect class name.");
+    Expr.Variable superclass = null;
+    if (match(TokenType.LEFT_PAREN)) {
+      consume(TokenType.IDENTIFIER, "Expect superclass name.");
+      superclass = new Expr.Variable(previous());
+      consume(TokenType.RIGHT_PAREN, "Expect ')' after superclass.");
+    }
+
+    consume(TokenType.LEFT_BRACE, "Expect '{' before class body.");
+
+    List<Stmt.Function> methods = new ArrayList<>();
+    while (!check(TokenType.RIGHT_BRACE) && !isAtEnd()) {
+      methods.add(funDeclaration());
+    }
+
+    consume(TokenType.RIGHT_BRACE, "Expect '}' after class body.");
+
+    return new Stmt.Class(name, superclass, methods);
   }
 
   // Try to parses a statement, else parses a expression.
@@ -174,11 +196,20 @@ public class Parser {
   private Expr assignment() {
     Expr expr = or();
 
-    if (match(TokenType.SET)) {
+    if (match(
+        TokenType.SET,
+        TokenType.SET_ADD,
+        TokenType.SET_SUB,
+        TokenType.SET_MUL,
+        TokenType.SET_DIV)) {
       Token equals = previous();
       Expr value = assignment();
 
-      if (expr instanceof Expr.Variable variable) return new Expr.Assign(variable.name(), value);
+      if (expr instanceof Expr.Variable variable)
+        return new Expr.Assign(variable.name(), equals, value);
+      else if (expr instanceof Expr.Get get) {
+        return new Expr.Set(get.object(), get.name(), equals, value);
+      }
 
       throw error(equals, "Invalid assignment target.");
     }
@@ -272,14 +303,19 @@ public class Parser {
   private Expr call() {
     Expr expr = primary();
 
-    while (match(TokenType.LEFT_PAREN)) {
-      expr = finishCall(expr);
+    for (; ; ) {
+      if (match(TokenType.LEFT_PAREN)) {
+        expr = finishCall(expr);
+      } else if (match(TokenType.GET)) {
+        Token name = consume(TokenType.IDENTIFIER, "Expect property name after '.'.");
+        expr = new Expr.Get(expr, name);
+      } else break;
     }
 
     return expr;
   }
 
-  private Expr finishCall(Expr callee) {
+  private Expr.Call finishCall(Expr callee) {
     List<Expr> arguments = new ArrayList<>();
     if (!check(TokenType.RIGHT_PAREN)) {
       do {
@@ -296,24 +332,28 @@ public class Parser {
   }
 
   private Expr primary() {
-    if (match(TokenType.FALSE)) return new Expr.Literal(false);
-    if (match(TokenType.TRUE)) return new Expr.Literal(true);
-    if (match(TokenType.NIL)) return new Expr.Literal(null);
-
-    if (match(TokenType.NUMBER, TokenType.STRING)) {
-      return new Expr.Literal(previous().literal());
-    }
-    if (match(TokenType.IDENTIFIER)) {
-      return new Expr.Variable(previous());
-    }
-
-    if (match(TokenType.LEFT_PAREN)) {
-      Expr expr = expression();
-      consume(TokenType.RIGHT_PAREN, "Expect ')' after expression.");
-      return new Expr.Grouping(expr);
-    }
-
-    throw error(peek(), "Expect expression.");
+    return switch (advance().type()) {
+      case FALSE -> Expr.Literal.FALSE;
+      case TRUE -> Expr.Literal.TRUE;
+      case NIL -> Expr.Literal.NIL;
+      case NUMBER, STRING -> new Expr.Literal(previous().literal());
+      case THIS -> new Expr.This(previous());
+      case SUPER -> {
+        Token keyword = previous();
+        consume(TokenType.GET, "Expect '.' after 'super'.");
+        Token method = consume(TokenType.IDENTIFIER, "Expect superclass method name.");
+        yield new Expr.Super(keyword, method);
+      }
+      case IDENTIFIER -> new Expr.Variable(previous());
+      case LEFT_PAREN -> {
+        Expr expr = expression();
+        consume(TokenType.RIGHT_PAREN, "Expect ')' after expression.");
+        yield new Expr.Grouping(expr);
+      }
+      default -> {
+        throw error(previous(), "Expect expression.");
+      }
+    };
   }
 
   private void synchronize() {

@@ -4,14 +4,17 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
+import java.util.Optional;
+import java.util.function.BiFunction;
 import org.nyx.buildin.NyxCallable;
+import org.nyx.buildin.NyxClass;
 import org.nyx.buildin.NyxFunction;
 import org.nyx.buildin.NyxGlobals;
+import org.nyx.buildin.NyxInstance;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
-  private static class RuntimeError extends RuntimeException {
+  public static class RuntimeError extends RuntimeException {
     private final Token token;
 
     public RuntimeError(Token token, String msg) {
@@ -24,7 +27,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
   // Global environment
   private Environment environment = new Environment(null);
-  private Object returnValue = null;
+  private Optional<Object> returnValue = null;
 
   public Interpreter() {
     for (var pair : NyxGlobals.GLOBALS.entrySet()) {
@@ -102,7 +105,31 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitClassStmt(Stmt.Class stmt) {
-    throw new UnsupportedOperationException("Not supported yet.");
+    environment.declare(stmt.name(), null);
+
+    NyxClass superclass = null;
+    if (stmt.superclass() != null) {
+      Object obj = evaluate(stmt.superclass());
+      if (obj instanceof NyxClass cast) {
+        superclass = cast;
+        environment = new Environment(environment);
+        environment.declare("super", superclass);
+      } else throw new RuntimeError(stmt.superclass().name(), "Superclass must be a class.");
+    }
+
+    Map<String, NyxFunction> methods = new HashMap<>();
+    for (var method : stmt.methods()) {
+      methods.put(method.name().lexeme(), new NyxFunction(method, environment));
+    }
+
+    NyxClass created = new NyxClass(stmt.name().lexeme(), superclass, methods);
+    environment.define(stmt.name(), created);
+
+    if (superclass != null) {
+      environment = environment.getEnclosing();
+    }
+
+    return null;
   }
 
   @Override
@@ -124,7 +151,9 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitReturnStmt(Stmt.Return stmt) {
-    returnValue = evaluate(stmt.value());
+    returnValue =
+        (stmt.value() != null) ? Optional.ofNullable(evaluate(stmt.value())) : Optional.empty();
+
     return null;
   }
 
@@ -152,17 +181,76 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
   @Override
   public Object visitSetExpr(Expr.Set expr) {
-    throw new UnsupportedOperationException("Not supported yet.");
+    Object object = evaluate(expr.object());
+
+    if (object instanceof NyxInstance instance) {
+      Object value = evaluate(expr.value());
+      switch (expr.operator().type()) {
+        case SET -> {
+          instance.set(expr.name(), value);
+        }
+        case SET_ADD -> {
+          instance.compute(
+              expr.name(),
+              (key, present) -> {
+                checkNumberOperand(expr.operator(), value);
+                checkNumberOperand(expr.operator(), present);
+                return (Double) present + (Double) value;
+              });
+        }
+        case SET_SUB -> {
+          instance.compute(
+              expr.name(),
+              (key, present) -> {
+                checkNumberOperand(expr.operator(), value);
+                checkNumberOperand(expr.operator(), present);
+                return (Double) present - (Double) value;
+              });
+        }
+        case SET_MUL -> {
+          instance.compute(
+              expr.name(),
+              (key, present) -> {
+                checkNumberOperand(expr.operator(), value);
+                checkNumberOperand(expr.operator(), present);
+                return (Double) present * (Double) value;
+              });
+        }
+        case SET_DIV -> {
+          instance.compute(
+              expr.name(),
+              (key, present) -> {
+                checkNumberOperand(expr.operator(), value);
+                checkNumberOperand(expr.operator(), present);
+                return (Double) present / (Double) value;
+              });
+        }
+        // Unreachable.
+        default -> throw new RuntimeError(expr.operator(), "Unexpected token.");
+      }
+
+      return value;
+    }
+
+    throw new RuntimeError(expr.name(), "Only instances have fields.");
   }
 
   @Override
   public Object visitSuperExpr(Expr.Super expr) {
-    throw new UnsupportedOperationException("Not supported yet.");
+    int distance = locals.get(expr);
+    NyxClass superclass = (NyxClass) environment.getAt(distance, "super");
+    NyxInstance object = (NyxInstance) environment.getAt(distance - 1, "this");
+    NyxFunction method = superclass.findMethod(expr.method());
+    if (method == null) {
+      throw new RuntimeError(expr.method(), "Undefined property '" + expr.method().lexeme() + "'.");
+    }
+
+    return method.bind(object);
   }
 
   @Override
   public Object visitThisExpr(Expr.This expr) {
-    throw new UnsupportedOperationException("Not supported yet.");
+    return lookUpVariable(expr.keyword(), expr);
   }
 
   @Override
@@ -226,11 +314,11 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
       case EQUAL -> isEqual(left, evaluate(expr.right()));
       case ADD -> {
         Object right = evaluate(expr.right());
-        if (left instanceof Double && right instanceof Double) {
-          yield (double) left + (double) right;
+        if (left instanceof Double l && right instanceof Double r) {
+          yield l + r;
         }
-        if (left instanceof String && right instanceof String) {
-          yield (String) left + (String) right;
+        if (left instanceof String l) {
+          yield l + (right != null ? right.toString() : "nil");
         }
 
         throw new RuntimeError(expr.operator(), "Expected numbers or strings.");
@@ -263,10 +351,68 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     Object value = evaluate(expr.value());
 
     Integer distance = locals.get(expr);
-    if (distance != null) {
-      environment.defineAt(distance, expr.name(), value);
-    } else {
-      environment.define(expr.name(), value);
+    switch (expr.operator().type()) {
+      case SET -> {
+        if (distance != null) {
+          environment.defineAt(distance, expr.name(), value);
+        } else {
+          environment.define(expr.name(), value);
+        }
+      }
+      case SET_ADD -> {
+        checkNumberOperand(expr.operator(), value);
+        BiFunction<String, Object, Object> func =
+            (key, present) -> {
+              if (present instanceof Double l) return l + (Double) value;
+              else throw new RuntimeError(expr.operator(), "Left side is not a number.");
+            };
+        if (distance != null) {
+          environment.computeAt(distance, expr.name(), func);
+        } else {
+          environment.compute(expr.name(), func);
+        }
+      }
+      case SET_SUB -> {
+        checkNumberOperand(expr.operator(), value);
+        BiFunction<String, Object, Object> func =
+            (key, present) -> {
+              if (present instanceof Double l) return l - (Double) value;
+              else throw new RuntimeError(expr.operator(), "Left side is not a number.");
+            };
+        if (distance != null) {
+          environment.computeAt(distance, expr.name(), func);
+        } else {
+          environment.compute(expr.name(), func);
+        }
+      }
+      case SET_MUL -> {
+        checkNumberOperand(expr.operator(), value);
+        BiFunction<String, Object, Object> func =
+            (key, present) -> {
+              if (present instanceof Double l) return l * (Double) value;
+              else throw new RuntimeError(expr.operator(), "Left side is not a number.");
+            };
+        if (distance != null) {
+          environment.computeAt(distance, expr.name(), func);
+        } else {
+          environment.compute(expr.name(), func);
+        }
+      }
+      case SET_DIV -> {
+        checkNumberOperand(expr.operator(), value);
+        BiFunction<String, Object, Object> func =
+            (key, present) -> {
+              if (present instanceof Double l) return l / (Double) value;
+              else throw new RuntimeError(expr.operator(), "Left side is not a number.");
+            };
+        if (distance != null) {
+          environment.computeAt(distance, expr.name(), func);
+        } else {
+          environment.compute(expr.name(), func);
+        }
+      }
+      // Unreachable.
+      default -> throw new RuntimeError(expr.operator(), "Unexpected token.");
     }
 
     return value;
@@ -295,7 +441,12 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
   @Override
   public Object visitGetExpr(Expr.Get expr) {
-    throw new UnsupportedOperationException("Not supported yet.");
+    Object object = evaluate(expr.object());
+    if (object instanceof NyxInstance instance) {
+      return instance.get(expr.name());
+    }
+
+    throw new RuntimeError(expr.name(), "Only instances have properties.");
   }
 
   @Override
@@ -331,9 +482,13 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   }
 
   public Object getReturnValue() {
+    // Function did not return (void function), use default value nil instead.
+    if (returnValue == null) return null;
+
     var temp = returnValue;
     returnValue = null;
-    return temp;
+    // Get raw value.
+    return temp.orElse(null);
   }
 
   public Environment getEnvironment() {
