@@ -1,0 +1,15 @@
+print("
+    Welcome to Nyx!
+
+    This example program will print
+    the first 20 fibonacci numbers.
+");
+
+let a = 0;
+let b = 1;
+for (let n = 0; n < 20; n += 1) {
+    let t = a;
+    print(a);
+    a = b;
+    b += t;
+}

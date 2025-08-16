@@ -1,0 +1,35 @@
+fun range(start, stop) {
+  let i = start;
+
+  fun next() {
+    if (i < stop) {
+      let t = i;
+      i += 1;
+      return t;
+    }
+
+    return nil;
+  }
+
+  return next;
+}
+
+fun map(iter, func) {
+  fun next() {
+    let n = iter();
+    if (n != nil) return func(n);
+    return nil;
+  }
+
+  return next;
+}
+
+fun square(n) {
+  return n*n;
+}
+
+let iter = map(range(1, 5), square);
+let n;
+while ((n = iter()) != nil) {
+  print(n);
+}

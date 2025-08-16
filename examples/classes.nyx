@@ -1,0 +1,75 @@
+class Range {
+    init(start, stop, step) {
+        this.start = start;
+        this.stop = stop;
+        this.step = step;
+    }
+
+    hasNext() {
+        return this.start < this.stop;
+    }
+
+    next() {
+        if (this.hasNext()) {
+            let temp = this.start;
+            this.start += this.step;
+            return temp;
+        }
+    }
+}
+
+class Map {
+    init(iter, func) {
+        this.iter = iter;
+        this.func = func;
+    }
+
+    hasNext() {
+        return this.iter.hasNext();
+    }
+
+    next() {
+        if (this.hasNext()) {
+            return this.func(this.iter.next());
+        }
+    }
+}
+
+class Filter {
+    init(iter, test) {
+        this.iter = iter;
+        this.test = test;
+        this.cur = nil;
+    }
+
+    hasNext() {
+        if (this.cur != nil) return true;
+        while (this.cur == nil && this.iter.hasNext()) {
+            this.cur = this.iter.next();
+            if (this.test(this.cur)) return true;
+            this.cur = nil;
+        }
+        return false;
+    }
+
+    next() {
+        if (this.hasNext()) {
+            let temp = this.cur;
+            this.cur = nil;
+            return temp;
+        }
+    }
+}
+
+fun square(n) {
+    return n*n;
+}
+
+fun lower(n) {
+    return n > 10;
+}
+
+let iter = Filter(Map(Range(1, 8, 1), square), lower);
+while (iter.hasNext()) {
+    print(iter.next());
+}
