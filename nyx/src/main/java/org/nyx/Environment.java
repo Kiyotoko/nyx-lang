@@ -17,25 +17,42 @@ public class Environment {
 
   public void declare(Token name, Object value) {
     if (!values.containsKey(name.lexeme())) values.put(name.lexeme(), value);
-    else Nyx.error(name.line(), "Variable '" + name.lexeme() + "' is already declared.");
+    else Nyx.error(name, "Variable '" + name.lexeme() + "' is already declared.");
   }
 
   public void define(Token name, Object value) {
     if (values.containsKey(name.lexeme())) values.put(name.lexeme(), value);
     else if (enclosing != null) enclosing.define(name, value);
-    else Nyx.error(name.line(), "Variable '" + name.lexeme() + "' is not declared.");
+    else Nyx.error(name, "Variable '" + name.lexeme() + "' is not declared.");
+  }
+
+  public void defineAt(int distance, Token name, Object value) {
+    ancestor(distance).values.put(name.lexeme(), value);
   }
 
   public Object get(Token name) {
     if (values.containsKey(name.lexeme())) return values.get(name.lexeme());
     else if (enclosing != null) return enclosing.get(name);
 
-    Nyx.error(name.line(), "Can not access undeclared variable '" + name.lexeme() + "'");
+    Nyx.error(name, "Can not access undeclared variable '" + name.lexeme() + "'");
     return null; // FIXME replace with throw
+  }
+
+  public Object getAt(int distance, String name) {
+    return ancestor(distance).values.get(name);
+  }
+
+  private Environment ancestor(int distance) {
+    Environment environment = this;
+    for (int i = 0; i < distance; i++) {
+      environment = environment.enclosing;
+    }
+
+    return environment;
   }
 
   @Override
   public String toString() {
-    return values.entrySet().toString();
+    return values.entrySet().toString() + " /-> " + enclosing;
   }
 }

@@ -9,6 +9,7 @@ public class Scanner {
   private int start = 0;
   private int current = 0;
   private int line = 1;
+  private int column;
 
   public Scanner(String source) {
     this.source = source;
@@ -21,7 +22,7 @@ public class Scanner {
       scanToken();
     }
 
-    tokens.add(new Token(TokenType.EOF, "", null, line));
+    tokens.add(new Token(TokenType.EOF, "", null, line, column));
     return tokens;
   }
 
@@ -52,15 +53,18 @@ public class Scanner {
       }
       case '&' -> {
         if (match('&')) addToken(TokenType.AND);
-        else Nyx.error(line, "Unexpected character.");
+        else Nyx.error(line, column, "Unexpected character.");
       }
       case '|' -> {
         if (match('|')) addToken(TokenType.OR);
-        else Nyx.error(line, "Unexpected character.");
+        else Nyx.error(line, column, "Unexpected character.");
       }
       // Ignore whitespace.
       case ' ', '\r', '\t' -> {}
-      case '\n' -> line++;
+      case '\n' -> {
+        line++;
+        column = 0;
+      }
       case '"' -> string();
       default -> {
         if (isDigit(c)) {
@@ -68,7 +72,7 @@ public class Scanner {
         } else if (isAlpha(c)) {
           identifier();
         } else {
-          Nyx.error(line, "Unexpected character.");
+          Nyx.error(line, column, "Unexpected character.");
         }
       }
     }
@@ -119,7 +123,7 @@ public class Scanner {
     }
 
     if (isAtEnd()) {
-      Nyx.error(line, "Unterminated string.");
+      Nyx.error(line, column, "Unterminated string.");
       return;
     }
 
@@ -135,6 +139,7 @@ public class Scanner {
     if (isAtEnd()) return false;
     if (source.charAt(current) != expected) return false;
 
+    column++;
     current++;
     return true;
   }
@@ -166,6 +171,7 @@ public class Scanner {
   }
 
   private char advance() {
+    column++;
     return source.charAt(current++);
   }
 
@@ -175,6 +181,6 @@ public class Scanner {
 
   private void addToken(TokenType type, Object literal) {
     String text = source.substring(start, current);
-    tokens.add(new Token(type, text, literal, line));
+    tokens.add(new Token(type, text, literal, line, column));
   }
 }

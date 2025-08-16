@@ -62,14 +62,18 @@ public interface Expr {
   }
 
   record Call(Expr callee, Token paren, List<Expr> arguments) implements Expr {
-
     @Override
     public <R> R accept(Visitor<R> visitor) {
       return visitor.visitCallExpr(this);
     }
   }
 
-  record Set(Expr object, Token name, Expr value) {}
+  record Set(Expr object, Token name, Expr value) implements Expr {
+    @Override
+    public <R> R accept(Visitor<R> visitor) {
+      return visitor.visitSetExpr(this);
+    }
+  }
 
   record Get(Expr object, Token name) implements Expr {
     @Override

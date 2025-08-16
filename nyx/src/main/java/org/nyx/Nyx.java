@@ -9,7 +9,16 @@ import java.nio.file.Paths;
 import java.util.List;
 
 public class Nyx {
-  static boolean hadError = false;
+  private final class Ansi {
+    private static final String CSI = "\033[";
+    private static final String RESET = CSI + "0m";
+    private static final String BOLD = CSI + "1m";
+    private static final String RED = CSI + "91m";
+    private static final String BLUE = CSI + "94m";
+  }
+
+  private static boolean hadError = false;
+  private static String source;
 
   public static void main(String[] args) throws IOException {
     if (args.length > 1) {
@@ -24,12 +33,14 @@ public class Nyx {
     if (hadError) System.exit(65);
   }
 
-  private static void runFile(String path) throws IOException {
+  public static void runFile(String path) throws IOException {
+    source = path;
     byte[] bytes = Files.readAllBytes(Paths.get(path));
     run(new String(bytes, Charset.defaultCharset()), new Interpreter());
   }
 
-  private static void runPrompt() throws IOException {
+  public static void runPrompt() throws IOException {
+    source = "STDIO";
     InputStreamReader input = new InputStreamReader(System.in);
     BufferedReader reader = new BufferedReader(input);
     Interpreter interpreter = new Interpreter();
@@ -52,23 +63,21 @@ public class Nyx {
     // Stop if there was a syntax error.
     if (hadError) return;
 
+    new Resolution(interpreter).resolve(statements);
     interpreter.interpret(statements);
   }
 
-  static void error(int line, String message) {
-    report(line, "", message);
+  public static void error(int line, int column, String message) {
+    report(line, column, message);
   }
 
-  static void error(Token token, String message) {
-    if (token.type() == TokenType.EOF) {
-      report(token.line(), " at end", message);
-    } else {
-      report(token.line(), " at '" + token.lexeme() + "'", message);
-    }
+  public static void error(Token token, String message) {
+    report(token.line(), token.column(), message);
   }
 
-  private static void report(int line, String where, String message) {
-    System.err.println("[line " + line + "] Error" + where + ": " + message);
+  private static void report(int line, int column, String message) {
+    System.err.println(Ansi.RED + Ansi.BOLD + "error: " + Ansi.RESET + Ansi.BOLD + message + Ansi.RESET);
+    System.err.println(Ansi.BLUE + " --> " + Ansi.RESET + source + ":" + line + ":" + column);
     hadError = true;
   }
 }

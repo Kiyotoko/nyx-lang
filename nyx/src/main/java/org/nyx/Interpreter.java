@@ -1,8 +1,13 @@
 package org.nyx;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.nyx.buildin.NyxCallable;
+import org.nyx.buildin.NyxFunction;
+import org.nyx.buildin.NyxGlobals;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
@@ -15,46 +20,14 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
   }
 
+  private final Map<Expr, Integer> locals = new HashMap<>();
+
   // Global environment
   private Environment environment = new Environment(null);
   private Object returnValue = null;
 
   public Interpreter() {
-    for (var pair : Map.of(
-      "time", new NyxCallable() {
-        @Override
-        public Object call(Interpreter interpreter, List<Object> args) {
-          return (double) System.currentTimeMillis();
-        }
-
-        @Override
-        public int aritiy() {
-          return 0;
-        }
-
-        @Override
-        public String toString() {
-          return "<native fn>";
-        }
-      },
-      "print", new NyxCallable() {
-        @Override
-        public Object call(Interpreter interpreter, List<Object> args) {
-          System.out.println(args.get(0));
-          return args.get(0);
-        }
-
-        @Override
-        public int aritiy() {
-          return 1;
-        }
-
-        @Override
-        public String toString() {
-          return "<native fn>";
-        }
-      }
-    ).entrySet()) {
+    for (var pair : NyxGlobals.GLOBALS.entrySet()) {
       environment.declare(pair.getKey(), pair.getValue());
     }
   }
@@ -65,7 +38,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         execute(statement);
       }
     } catch (RuntimeError e) {
-      Nyx.error(e.token.line(), e.getMessage());
+      Nyx.error(e.token, e.getMessage());
     }
   }
 
@@ -98,6 +71,10 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
   public Object evaluate(Expr expr) {
     return expr.accept(this);
+  }
+
+  public void resolve(Expr expr, int depth) {
+    locals.put(expr, depth);
   }
 
   @Override
@@ -190,7 +167,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
   @Override
   public Object visitVariableExpr(Expr.Variable expr) {
-    return environment.get(expr.name());
+    return lookUpVariable(expr.name(), expr);
   }
 
   @Override
@@ -284,7 +261,14 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   @Override
   public Object visitAssignExpr(Expr.Assign expr) {
     Object value = evaluate(expr.value());
-    environment.define(expr.name(), value);
+
+    Integer distance = locals.get(expr);
+    if (distance != null) {
+      environment.defineAt(distance, expr.name(), value);
+    } else {
+      environment.define(expr.name(), value);
+    }
+
     return value;
   }
 
@@ -293,20 +277,20 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     Object callee = evaluate(expr.callee());
     if (callee instanceof NyxCallable fun) {
       if (fun.aritiy() != expr.arguments().size()) {
-        throw new RuntimeError(expr.paren(),
-          "Expected " + fun.aritiy() + " arguments, but got " + expr.arguments().size() + ".");
+        throw new RuntimeError(
+            expr.paren(),
+            "Expected " + fun.aritiy() + " arguments, but got " + expr.arguments().size() + ".");
       }
 
       List<Object> arguments = new ArrayList<>();
-      for (Expr argument : expr.arguments()) { 
+      for (Expr argument : expr.arguments()) {
         arguments.add(evaluate(argument));
       }
 
       return fun.call(this, arguments);
     }
 
-    throw new RuntimeError(expr.paren(),
-      "Can only call functions and classes.");    
+    throw new RuntimeError(expr.paren(), "Can only call functions and classes.");
   }
 
   @Override
@@ -317,6 +301,15 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   @Override
   public Object visitGroupingExpr(Expr.Grouping expr) {
     return evaluate(expr.expression());
+  }
+
+  private Object lookUpVariable(Token name, Expr expr) {
+    Integer distance = locals.get(expr);
+    if (distance != null) {
+      return environment.getAt(distance, name.lexeme());
+    } else {
+      return environment.get(name);
+    }
   }
 
   private void checkNumberOperand(Token operator, Object operand) {
