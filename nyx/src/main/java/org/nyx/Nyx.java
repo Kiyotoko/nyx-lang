@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
@@ -79,6 +80,22 @@ public class Nyx {
     System.err.println(
         Ansi.RED + Ansi.BOLD + "error: " + Ansi.RESET + Ansi.BOLD + message + Ansi.RESET);
     System.err.println(Ansi.BLUE + " --> " + Ansi.RESET + source + ":" + line + ":" + column);
+    if (!source.equals("STDIO")) {
+      try {
+        int i = 1;
+        var iter = Files.lines(Path.of(source)).iterator();
+        while (iter.hasNext()) {
+          var content = iter.next();
+          if (i++ == line) {
+            System.err.println(Ansi.BLUE + " | " + Ansi.RESET + content);
+            break;
+          }
+        }
+        System.err.println(Ansi.BLUE + " | " + Ansi.RESET + " ".repeat(column-1) + Ansi.RED + "^ " + message + Ansi.RESET);
+      } catch (IOException ex) {
+        System.err.println("Could not open source file.");
+      }
+    }
     hadError = true;
   }
 }

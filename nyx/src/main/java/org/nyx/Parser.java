@@ -207,9 +207,8 @@ public class Parser {
 
       if (expr instanceof Expr.Variable variable)
         return new Expr.Assign(variable.name(), equals, value);
-      else if (expr instanceof Expr.Get get) {
+      if (expr instanceof Expr.Get get)
         return new Expr.Set(get.object(), get.name(), equals, value);
-      }
 
       throw error(equals, "Invalid assignment target.");
     }

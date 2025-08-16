@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
+
 import org.nyx.buildin.NyxCallable;
 import org.nyx.buildin.NyxClass;
 import org.nyx.buildin.NyxFunction;
@@ -314,8 +315,10 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
       case EQUAL -> isEqual(left, evaluate(expr.right()));
       case ADD -> {
         Object right = evaluate(expr.right());
-        if (left instanceof Double l && right instanceof Double r) {
-          yield l + r;
+        if (left instanceof Double l) {
+          if (right instanceof Double r)
+            yield l + r;
+          else throw new RuntimeError(expr.operator(), "Expected number.");
         }
         if (left instanceof String l) {
           yield l + (right != null ? right.toString() : "nil");
