@@ -5,18 +5,18 @@
     nixpkgs.url = "github:NixOS/nixpkgs";
     flake-utils.url = "github:numtide/flake-utils";
 
-    nyx = { path = ./nyx; };
-    nyx-vm = { path = ./nyx-vm; };
+    nyx-ast.url = "path:./nyx-ast";
+    nyx-vm.url = "path:./nyx-vm";
   };
 
-  outputs = { self, nixpkgs, flake-utils, nyx, nyx-vm }:
+  outputs = { self, nixpkgs, flake-utils, nyx-ast, nyx-vm }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
       in {
         packages = {
-          nyx = nyx.packages.${system}.default;
-          nyx-vm = nyx-vm.packages.${system}.default;
+          jnyx = nyx-ast.packages.${system}.default;
+          nyx = nyx-vm.packages.${system}.default;
         };
       });
 }
