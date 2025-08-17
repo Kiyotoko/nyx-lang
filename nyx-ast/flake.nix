@@ -21,7 +21,7 @@
       in
       {
         packages.default = maven.buildMavenPackage {
-          pname = "nyx";
+          pname = "nyx-ast";
           version = "1.0-SNAPSHOT";
           src = ./.;
           mvnHash = "sha256-mXxLYE8BVv+E0KrsoEFHKGcpdjVJR2lNSEDgNN/pqfk=";
@@ -29,11 +29,11 @@
           nativeBuildInputs = [ pkgs.makeWrapper ];#
 
             installPhase = ''
-              mkdir -p $out/bin $out/share/nyx
-              install -Dm644 target/nyx-1.0-SNAPSHOT.jar $out/share/nyx
+              mkdir -p $out/bin $out/share/nyx-ast
+              install -Dm644 target/nyx-ast-1.0-SNAPSHOT.jar $out/share/nyx-ast
 
-              makeWrapper ${pkgs.jre}/bin/java $out/bin/nyx \
-                --add-flags "-jar $out/share/nyx/nyx-1.0-SNAPSHOT.jar"
+              makeWrapper ${pkgs.jre}/bin/java $out/bin/nyx-ast \
+                --add-flags "-jar $out/share/nyx-ast/nyx-ast-1.0-SNAPSHOT.jar"
             '';
         };
 
