@@ -1,7 +1,6 @@
 {
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
-    naersk.url = "github:nix-community/naersk";
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
   };
 
@@ -9,7 +8,6 @@
     {
       self,
       flake-utils,
-      naersk,
       nixpkgs,
     }:
     flake-utils.lib.eachDefaultSystem (
@@ -19,17 +17,29 @@
           inherit system;
           overlays = [];
         };
-
-        naersk' = pkgs.callPackage naersk { };
+        maven = pkgs.maven;
       in
-      rec {
-        defaultPackage = naersk'.buildPackage {
+      {
+        packages.default = maven.buildMavenPackage {
+          pname = "nyx";
+          version = "1.0-SNAPSHOT";
           src = ./.;
+          mvnHash = "sha256-mXxLYE8BVv+E0KrsoEFHKGcpdjVJR2lNSEDgNN/pqfk=";
+
+          nativeBuildInputs = [ pkgs.makeWrapper ];#
+
+            installPhase = ''
+              mkdir -p $out/bin $out/share/nyx
+              install -Dm644 target/nyx-1.0-SNAPSHOT.jar $out/share/nyx
+
+              makeWrapper ${pkgs.jre}/bin/java $out/bin/nyx \
+                --add-flags "-jar $out/share/nyx/nyx-1.0-SNAPSHOT.jar"
+            '';
         };
 
-        devShell = pkgs.mkShell {
+        devShells.default = pkgs.mkShell {
           nativeBuildInputs = with pkgs; [
-            temurin-bin
+            jdk17
             maven
           ];
         };
