@@ -13,7 +13,9 @@ pub fn build(b: *std.Build) void {
         .files = &.{
             "src/chunk.c",
             "src/debug.c",
-            "src/main.c"
+            "src/main.c",
+            "src/value.c",
+            "src/vm.c"
         }
     });
     exe.linkLibC();
