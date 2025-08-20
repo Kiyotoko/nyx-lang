@@ -49,7 +49,10 @@ public class Nyx {
     for (; ; ) {
       System.out.print("> ");
       String line = reader.readLine();
-      if (line == null) break;
+      if (line == null) {
+        System.out.println();
+        break;
+      }
       hadError = false;
       run(line, interpreter);
     }
