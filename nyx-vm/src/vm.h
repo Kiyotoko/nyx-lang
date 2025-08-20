@@ -15,7 +15,7 @@ typedef struct {
 
 extern void vm_init();
 
-extern int vm_interpret(Chunk* chunk);
+extern int vm_interpret(const char* source);
 
 extern void vm_stack_push(Value value);
 

@@ -7,17 +7,17 @@ pub fn build(b: *std.Build) void {
     const exe = b.addExecutable(.{
         .name = "nyx-vm",
         .target = target,
-        .optimize = optimize
+        .optimize = optimize,
     });
-    exe.addCSourceFiles(.{
-        .files = &.{
-            "src/chunk.c",
-            "src/debug.c",
-            "src/main.c",
-            "src/value.c",
-            "src/vm.c"
-        }
-    });
+    exe.addCSourceFiles(.{ .files = &.{
+        "src/chunk.c",
+        "src/compiler.c",
+        "src/debug.c",
+        "src/main.c",
+        "src/scanner.c",
+        "src/value.c",
+        "src/vm.c",
+    } });
     exe.linkLibC();
 
     b.installArtifact(exe);

@@ -1,5 +1,6 @@
 #include "vm.h"
 #include "chunk.h"
+#include "compiler.h"
 #include "debug.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -62,11 +63,10 @@ int vm_run() {
     }
 }
 
-int vm_interpret(Chunk* chunk) {
-    vm.chunk = chunk;
-    vm.ip = chunk->codes;
+int vm_interpret(const char* source) {
+    compile(source);
 
-    return vm_run();
+    // return vm_run();
 }
 
 void vm_stack_push(Value value) {
