@@ -27,6 +27,8 @@ public enum TokenType {
   GREATER_EQUAL,
   LESS,
   LESS_EQUAL,
+  AND,
+  OR,
 
   // Literals.
   IDENTIFIER,
@@ -34,7 +36,6 @@ public enum TokenType {
   NUMBER,
 
   // Keywords.
-  AND,
   CLASS,
   ELSE,
   FALSE,
@@ -42,7 +43,6 @@ public enum TokenType {
   FOR,
   IF,
   NIL,
-  OR,
   RETURN,
   SUPER,
   THIS,
