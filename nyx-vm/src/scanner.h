@@ -1,7 +1,6 @@
 #ifndef SCANNER_H
 #define SCANNER_H
 
-
 typedef enum {
     // Single-character tokens.
     TOKEN_LEFT_PAREN,
@@ -56,6 +55,7 @@ typedef struct {
     const char* start;
     int length;
     int line;
+    int column;
 } Token;
 
 void scanner_init(const char* source);

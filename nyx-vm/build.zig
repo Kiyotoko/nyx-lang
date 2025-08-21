@@ -14,6 +14,7 @@ pub fn build(b: *std.Build) void {
         "src/compiler.c",
         "src/debug.c",
         "src/main.c",
+        "src/parser.c",
         "src/scanner.c",
         "src/value.c",
         "src/vm.c",

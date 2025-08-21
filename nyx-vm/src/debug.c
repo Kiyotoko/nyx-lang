@@ -4,6 +4,12 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#define CSI "\033["
+#define RESET CSI "0m"
+#define BOLD CSI "1m"
+#define RED CSI "91m"
+#define BLUE CSI "94m"
+
 void dbg_chunk(Chunk *chunk, const char *name) {
   printf("== %s ==\n", name);
 
@@ -51,4 +57,15 @@ int dbg_instruction(Chunk *chunk, int offset) {
 
 void dbg_value(Value value) {
   printf("'%g'\n", value);
+}
+
+static char* source = "STDIO";
+
+void error(int line, int column, const char* message) {
+  fprintf(stderr, RED BOLD "error: " RESET BOLD "%s" RESET "\n", message);
+  fprintf(stderr, BLUE " --> " RESET "%s:%i:%i\n", source, line, column);
+}
+
+void error_at(Token *token, const char *message) {
+  error(token->line, token->column, message);
 }

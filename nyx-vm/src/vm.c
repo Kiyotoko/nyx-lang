@@ -64,9 +64,19 @@ int vm_run() {
 }
 
 int vm_interpret(const char* source) {
-    compile(source);
+    Chunk* chunk = chunk_create();
 
-    // return vm_run();
+    if (!compile(source, chunk)) {
+        chunk:free(chunk);
+        return 1;
+    }
+
+    vm.chunk = chunk;
+    vm.ip = vm.chunk->codes;
+
+    int result = vm_run();
+    chunk_free(chunk);
+    return result;
 }
 
 void vm_stack_push(Value value) {

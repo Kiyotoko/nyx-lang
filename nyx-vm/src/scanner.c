@@ -14,8 +14,8 @@ void scanner_init(const char* source) {
   scanner.start = source;
   scanner.current = source;
   scanner.line = 1;
+  scanner.column = 0;
 }
-
 
 bool scanner_at_end() {
     return *scanner.current == '\0';
@@ -38,6 +38,7 @@ Token scanner_make_token(TokenType type) {
     token.start = scanner.start;
     token.length = (int)(scanner.current - scanner.start);
     token.line = scanner.line;
+    token.column = scanner.column;
     return token;
 }
 
@@ -47,10 +48,12 @@ Token scanner_error(const char* message) {
     token.start = message;
     token.length = (int)strlen(message);
     token.line = scanner.line;
+    token.column = scanner.column;
     return token;
 }
 
 char scanner_advance() {
+    scanner.column++;
     return *(scanner.current++);
 }
 
@@ -66,6 +69,7 @@ char scanner_peak_next() {
 bool scanner_match(char expected) {
     if (scanner_at_end()) return false;
     if (*scanner.current != expected) return false;
+    scanner.column++;
     scanner.current++;
     return true;
 }
@@ -75,6 +79,7 @@ void scanner_skip_whitespace() {
     char c = scanner_peek();
     switch (c) {
         case '\n':
+            scanner.column = 0;
             scanner.line++;
         case ' ':
         case '\r':
@@ -95,7 +100,10 @@ void scanner_skip_whitespace() {
 
 Token scanner_string() {
   while (scanner_peek() != '"' && !scanner_at_end()) {
-    if (scanner_peek() == '\n') scanner.line++;
+    if (scanner_peek() == '\n') {
+        scanner.column = 0;
+        scanner.line++;
+    }
     scanner_advance();
   }
 
