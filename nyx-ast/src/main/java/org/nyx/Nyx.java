@@ -19,7 +19,6 @@ public class Nyx {
   }
 
   private static boolean hadError = false;
-  private static String source;
 
   public static void main(String[] args) throws IOException {
     if (args.length > 1) {
@@ -35,13 +34,11 @@ public class Nyx {
   }
 
   public static void runFile(String path) throws IOException {
-    source = path;
     byte[] bytes = Files.readAllBytes(Paths.get(path));
-    run(new String(bytes, Charset.defaultCharset()), new Interpreter());
+    run(path, new String(bytes, Charset.defaultCharset()), new Interpreter());
   }
 
   public static void runPrompt() throws IOException {
-    source = "STDIO";
     InputStreamReader input = new InputStreamReader(System.in);
     BufferedReader reader = new BufferedReader(input);
     Interpreter interpreter = new Interpreter();
@@ -54,12 +51,12 @@ public class Nyx {
         break;
       }
       hadError = false;
-      run(line, interpreter);
+      run("STDIO", line, interpreter);
     }
   }
 
-  private static void run(String source, Interpreter interpreter) {
-    Scanner scanner = new Scanner(source);
+  private static void run(String filename, String source, Interpreter interpreter) {
+    Scanner scanner = new Scanner(filename, source);
     List<Token> tokens = scanner.scanTokens();
     Parser parser = new Parser(tokens);
     List<Stmt> statements = parser.parse();
@@ -71,22 +68,22 @@ public class Nyx {
     interpreter.interpret(statements);
   }
 
-  public static void error(int line, int column, String message) {
-    report(line, column, message);
+  public static void error(String filename, int line, int column, String message) {
+    report(filename, line, column, message);
   }
 
   public static void error(Token token, String message) {
-    report(token.line(), token.column(), message);
+    report(token.filename(), token.line(), token.column(), message);
   }
 
-  private static void report(int line, int column, String message) {
+  private static void report(String filename, int line, int column, String message) {
     System.err.println(
         Ansi.RED + Ansi.BOLD + "error: " + Ansi.RESET + Ansi.BOLD + message + Ansi.RESET);
-    System.err.println(Ansi.BLUE + " --> " + Ansi.RESET + source + ":" + line + ":" + column);
-    if (!source.equals("STDIO")) {
+    System.err.println(Ansi.BLUE + " --> " + Ansi.RESET + filename + ":" + line + ":" + column);
+    if (!filename.equals("STDIO")) {
       try {
         int i = 1;
-        var iter = Files.lines(Path.of(source)).iterator();
+        var iter = Files.lines(Path.of(filename)).iterator();
         while (iter.hasNext()) {
           var content = iter.next();
           if (i++ == line) {

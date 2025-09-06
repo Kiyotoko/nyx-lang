@@ -66,7 +66,7 @@ public class NyxModule implements NyxContainer {
 
     public NyxModule(Token name, File file) throws IOException {
         try (FileInputStream stream = new FileInputStream(file)) {
-            Scanner scanner = new Scanner(new String(stream.readAllBytes(), Charset.defaultCharset()));
+            Scanner scanner = new Scanner(file.getAbsolutePath(), new String(stream.readAllBytes(), Charset.defaultCharset()));
             Parser parser = new Parser(scanner.scanTokens());
             List<Stmt> stmts = parser.parse();
             Interpreter interpreter = new Interpreter();

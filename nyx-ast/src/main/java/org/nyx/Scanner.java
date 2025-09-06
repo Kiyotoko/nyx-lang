@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Scanner {
+  private final String filename;
   private final String source;
   private final List<Token> tokens = new ArrayList<>();
   private int start = 0;
@@ -11,7 +12,8 @@ public class Scanner {
   private int line = 1;
   private int column;
 
-  public Scanner(String source) {
+  public Scanner(String filename, String source) {
+    this.filename = filename;
     this.source = source;
   }
 
@@ -22,7 +24,7 @@ public class Scanner {
       scanToken();
     }
 
-    tokens.add(new Token(TokenType.EOF, "", null, line, column));
+    tokens.add(new Token(TokenType.EOF, filename, "", null, line, column));
     return tokens;
   }
 
@@ -52,11 +54,11 @@ public class Scanner {
       }
       case '&' -> {
         if (match('&')) addToken(TokenType.AND);
-        else Nyx.error(line, column, "Unexpected character.");
+        else Nyx.error(filename, line, column, "Unexpected character.");
       }
       case '|' -> {
         if (match('|')) addToken(TokenType.OR);
-        else Nyx.error(line, column, "Unexpected character.");
+        else Nyx.error(filename, line, column, "Unexpected character.");
       }
       // Ignore whitespace.
       case ' ', '\r', '\t' -> {}
@@ -71,7 +73,7 @@ public class Scanner {
         } else if (isAlpha(c)) {
           identifier();
         } else {
-          Nyx.error(line, column, "Unexpected character.");
+          Nyx.error(filename, line, column, "Unexpected character.");
         }
       }
     }
@@ -123,7 +125,7 @@ public class Scanner {
     }
 
     if (isAtEnd()) {
-      Nyx.error(line, column, "Unterminated string.");
+      Nyx.error(filename, line, column, "Unterminated string.");
       return;
     }
 
@@ -181,6 +183,6 @@ public class Scanner {
 
   private void addToken(TokenType type, Object literal) {
     String text = source.substring(start, current);
-    tokens.add(new Token(type, text, literal, line, column));
+    tokens.add(new Token(type, filename, text, literal, line, column));
   }
 }
