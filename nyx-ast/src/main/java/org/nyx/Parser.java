@@ -45,7 +45,7 @@ public class Parser {
       initializer = expression();
     }
 
-    consume(TokenType.SEMICOLON, "Expect ';' after variable declaration.");
+    match(TokenType.SEMICOLON);
     return new Stmt.Let(name, initializer);
   }
 
@@ -179,13 +179,13 @@ public class Parser {
       value = expression();
     }
 
-    consume(TokenType.SEMICOLON, "Expect ';' after return value.");
+    match(TokenType.SEMICOLON);
     return new Stmt.Return(keyword, value);
   }
 
   private Stmt.Expression expressionStatement() {
     Expr expr = expression();
-    consume(TokenType.SEMICOLON, "Expect ';' after expression.");
+    match(TokenType.SEMICOLON);
     return new Stmt.Expression(expr);
   }
 
