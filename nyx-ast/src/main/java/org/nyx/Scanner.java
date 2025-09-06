@@ -89,6 +89,7 @@ public class Scanner {
           case "for" -> TokenType.FOR;
           case "fun" -> TokenType.FUN;
           case "if" -> TokenType.IF;
+          case "import" -> TokenType.IMPORT;
           case "nil" -> TokenType.NIL;
           case "return" -> TokenType.RETURN;
           case "super" -> TokenType.SUPER;

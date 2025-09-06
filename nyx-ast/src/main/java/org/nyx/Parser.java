@@ -93,6 +93,7 @@ public class Parser {
   private Stmt statement() {
     if (match(TokenType.LEFT_BRACE)) return blockStatement();
     if (match(TokenType.IF)) return ifStatement();
+    if (match(TokenType.IMPORT)) return importStatement();
     if (match(TokenType.WHILE)) return whileStatement();
     if (match(TokenType.FOR)) return forStatement();
     if (match(TokenType.RETURN)) return returnStatement();
@@ -123,6 +124,16 @@ public class Parser {
     }
 
     return new Stmt.If(condition, thenBranch, elseBranch);
+  }
+
+  private Stmt.Import importStatement() {
+    List<Token> paths = new ArrayList<>();
+    do { 
+        paths.add(advance());
+    } while (match(TokenType.GET));
+    match(TokenType.SEMICOLON);
+
+    return new Stmt.Import(paths);
   }
 
   private Stmt whileStatement() {

@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.nyx.buildin.NyxModule;
+
 public class Resolution implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   private final Interpreter interpreter;
@@ -193,6 +195,13 @@ public class Resolution implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     resolve(stmt.condition());
     resolve(stmt.ifBranch());
     if (stmt.elseBranch() != null) resolve(stmt.elseBranch());
+    return null;
+  }
+
+  @Override
+  public Void visitImportStmt(Stmt.Import stmt) {
+    // Preload module here
+    NyxModule.from(stmt.paths());
     return null;
   }
 

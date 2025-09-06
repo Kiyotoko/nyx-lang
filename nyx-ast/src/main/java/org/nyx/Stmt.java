@@ -14,6 +14,8 @@ public interface Stmt {
 
     R visitIfStmt(If stmt);
 
+    R visitImportStmt(Import stmt);
+
     R visitLetStmt(Let stmt);
 
     R visitReturnStmt(Return stmt);
@@ -53,6 +55,13 @@ public interface Stmt {
     @Override
     public <R> R accept(Visitor<R> visitor) {
       return visitor.visitIfStmt(this);
+    }
+  }
+
+  record Import(List<Token> paths) implements Stmt {
+    @Override
+    public <R> R accept(Visitor<R> visitor) {
+      return visitor.visitImportStmt(this);
     }
   }
 

@@ -5,13 +5,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.function.BiFunction;
 
 import org.nyx.buildin.NyxCallable;
 import org.nyx.buildin.NyxClass;
+import org.nyx.buildin.NyxContainer;
 import org.nyx.buildin.NyxFunction;
 import org.nyx.buildin.NyxGlobals;
 import org.nyx.buildin.NyxInstance;
+import org.nyx.buildin.NyxModule;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
@@ -146,6 +150,18 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
       execute(stmt.ifBranch());
     } else if (stmt.elseBranch() != null) {
       execute(stmt.elseBranch());
+    }
+    return null;
+  }
+
+  @Override
+  public Void visitImportStmt(Stmt.Import stmt) {
+    Future<NyxModule> future = NyxModule.from(stmt.paths());
+    try {
+      NyxModule module = future.get();
+      environment.declare(module.getName(), module);
+    } catch (InterruptedException|ExecutionException ex) {
+      throw new RuntimeError(stmt.paths().get(0), "Error when trying to resolve module: " + ex.getMessage());
     }
     return null;
   }
@@ -445,8 +461,8 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   @Override
   public Object visitGetExpr(Expr.Get expr) {
     Object object = evaluate(expr.object());
-    if (object instanceof NyxInstance instance) {
-      return instance.get(expr.name());
+    if (object instanceof NyxContainer container) {
+      return container.get(expr.name());
     }
 
     throw new RuntimeError(expr.name(), "Only instances have properties.");

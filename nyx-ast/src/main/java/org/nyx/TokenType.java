@@ -42,6 +42,7 @@ public enum TokenType {
   FUN,
   FOR,
   IF,
+  IMPORT,
   NIL,
   RETURN,
   SUPER,

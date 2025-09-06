@@ -3,10 +3,11 @@ package org.nyx.buildin;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiFunction;
+
 import org.nyx.Interpreter.RuntimeError;
 import org.nyx.Token;
 
-public class NyxInstance {
+public class NyxInstance implements NyxContainer {
   private final Map<String, Object> fields = new HashMap<>();
   private final NyxClass creator;
 
@@ -14,6 +15,7 @@ public class NyxInstance {
     this.creator = creator;
   }
 
+  @Override
   public Object get(Token name) {
     if (fields.containsKey(name.lexeme())) {
       return fields.get(name.lexeme());
@@ -25,10 +27,12 @@ public class NyxInstance {
     throw new RuntimeError(name, "Undefined property '" + name.lexeme() + "'.");
   }
 
+  @Override
   public void set(Token name, Object value) {
     fields.put(name.lexeme(), value);
   }
 
+  @Override
   public void compute(Token name, BiFunction<String, Object, Object> func) {
     fields.compute(name.lexeme(), func);
   }
