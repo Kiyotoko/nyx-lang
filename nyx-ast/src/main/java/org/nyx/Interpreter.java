@@ -5,10 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.function.BiFunction;
-
 import org.nyx.buildin.NyxCallable;
 import org.nyx.buildin.NyxClass;
 import org.nyx.buildin.NyxContainer;
@@ -156,13 +153,9 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitImportStmt(Stmt.Import stmt) {
-    Future<NyxModule> future = NyxModule.from(stmt.paths());
-    try {
-      NyxModule module = future.get();
-      environment.declare(module.getName(), module);
-    } catch (InterruptedException|ExecutionException ex) {
-      throw new RuntimeError(stmt.paths().get(0), "Error when trying to resolve module: " + ex.getMessage());
-    }
+    NyxModule module = NyxModule.from(stmt.paths());
+    environment.declare(module.getName(), module);
+
     return null;
   }
 
@@ -332,8 +325,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
       case ADD -> {
         Object right = evaluate(expr.right());
         if (left instanceof Double l) {
-          if (right instanceof Double r)
-            yield l + r;
+          if (right instanceof Double r) yield l + r;
           else throw new RuntimeError(expr.operator(), "Expected number.");
         }
         if (left instanceof String l) {

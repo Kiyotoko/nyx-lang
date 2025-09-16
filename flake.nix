@@ -15,8 +15,8 @@
         pkgs = import nixpkgs { inherit system; };
       in {
         packages = {
-          jnyx = nyx-ast.packages.${system}.default;
-          nyx = nyx-vm.packages.${system}.default;
+          nyxj = nyx-ast.packages.${system}.default;
+          nyxc = nyx-vm.packages.${system}.default;
         };
       });
 }

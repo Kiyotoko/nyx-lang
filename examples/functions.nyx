@@ -1,3 +1,5 @@
+import examples.classes
+
 fun range(start, stop) {
   let i = start;
 
@@ -32,4 +34,10 @@ let iter = map(range(1, 5), square);
 let n;
 while ((n = iter()) != nil) {
   print(n);
+}
+
+// If we compare it to classes, we should get the same result
+iter = classes.Map(classes.Range(1, 5, 1), square)
+while (iter.hasNext()) {
+    print(iter.next())
 }

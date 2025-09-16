@@ -3,7 +3,6 @@ package org.nyx.buildin;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiFunction;
-
 import org.nyx.Interpreter.RuntimeError;
 import org.nyx.Token;
 

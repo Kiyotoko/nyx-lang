@@ -91,7 +91,15 @@ public class Nyx {
             break;
           }
         }
-        System.err.println(Ansi.BLUE + " | " + Ansi.RESET + " ".repeat(column-1) + Ansi.RED + "^ " + message + Ansi.RESET);
+        System.err.println(
+            Ansi.BLUE
+                + " | "
+                + Ansi.RESET
+                + " ".repeat(column - 1)
+                + Ansi.RED
+                + "^ "
+                + message
+                + Ansi.RESET);
       } catch (IOException ex) {
         System.err.println("Could not open source file.");
       }

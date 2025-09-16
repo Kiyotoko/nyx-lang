@@ -128,8 +128,8 @@ public class Parser {
 
   private Stmt.Import importStatement() {
     List<Token> paths = new ArrayList<>();
-    do { 
-        paths.add(advance());
+    do {
+      paths.add(advance());
     } while (match(TokenType.GET));
     match(TokenType.SEMICOLON);
 

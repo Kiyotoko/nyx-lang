@@ -201,7 +201,9 @@ public class Resolution implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
   @Override
   public Void visitImportStmt(Stmt.Import stmt) {
     // Preload module here
-    NyxModule.from(stmt.paths());
+    NyxModule module = NyxModule.from(stmt.paths());
+    declare(module.getName());
+    define(module.getName());
     return null;
   }
 

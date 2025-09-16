@@ -3,7 +3,6 @@ package org.nyx.buildin;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
-
 import org.nyx.Interpreter;
 
 public final class NyxGlobals {
@@ -61,7 +60,7 @@ public final class NyxGlobals {
 
                 @Override
                 public int aritiy() {
-                    return 0;
+                  return 0;
                 }
 
                 @Override
